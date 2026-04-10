@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🚀 Dev Server",
+      "type": "shell",
+      "command": "npx serve src --listen 8080",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "📦 Git Pull",
+      "type": "shell",
+      "command": "git pull --rebase origin main",
+      "problemMatcher": []
+    },
+    {
+      "label": "🔼 Git Push",
+      "type": "shell",
+      "command": "git push origin main",
+      "problemMatcher": []
+    },
+    {
+      "label": "✅ Quick Commit",
+      "type": "shell",
+      "command": "git add -A && git commit -m \"${input:commitMessage}\"",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "commitMessage",
+      "type": "promptString",
+      "description": "Commit message"
+    }
+  ]
+}

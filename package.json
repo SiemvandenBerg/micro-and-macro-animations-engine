@@ -1,0 +1,25 @@
+{
+  "name": "micro-and-macro-animations-engine",
+  "version": "0.1.0",
+  "description": "A style-first character animation workshop for building signature 2D motion from reusable rigs and vector assets.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve src --listen 8080",
+    "start": "npx serve src --listen 8080"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SiemvandenBerg/micro-and-macro-animations-engine.git"
+  },
+  "keywords": [
+    "animation",
+    "skeleton",
+    "2d",
+    "canvas",
+    "motion-design",
+    "lottie"
+  ],
+  "author": "Siem van den Berg",
+  "license": "MIT"
+}

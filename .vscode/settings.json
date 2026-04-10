@@ -1,0 +1,24 @@
+{
+  "VssTaskButtons": [
+    {
+      "label": "🚀 Dev",
+      "task": "🚀 Dev Server",
+      "tooltip": "Start dev server on port 8080"
+    },
+    {
+      "label": "📦 Pull",
+      "task": "📦 Git Pull",
+      "tooltip": "Pull and rebase from main"
+    },
+    {
+      "label": "✅ Commit",
+      "task": "✅ Quick Commit",
+      "tooltip": "Stage all and commit with message"
+    },
+    {
+      "label": "🔼 Push",
+      "task": "🔼 Git Push",
+      "tooltip": "Push to origin main"
+    }
+  ]
+}
