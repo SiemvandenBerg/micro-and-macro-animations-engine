@@ -1,27 +1,25 @@
 // animation.js — Keyframe storage, interpolation, and playback
 
-export class Keyframe {
-  constructor(time, boneId, angle) {
-    this.time = time;       // seconds
-    this.boneId = boneId;
-    this.angle = angle;     // radians
-  }
-}
-
 export class AnimationClip {
   constructor(name, duration, loop = true) {
     this.name = name;
     this.duration = duration;  // seconds
     this.loop = loop;
-    this.tracks = new Map();   // boneId → [Keyframe] sorted by time
+    this.propertyTracks = new Map();  // 'boneId:prop' → [{time, value}]
   }
 
+  // Convenience: add a rotation keyframe (radians)
   addKeyframe(time, boneId, angle) {
-    if (!this.tracks.has(boneId)) {
-      this.tracks.set(boneId, []);
+    this.addPropertyKeyframe(time, boneId, 'rotation', angle);
+  }
+
+  addPropertyKeyframe(time, boneId, property, value) {
+    const key = `${boneId}:${property}`;
+    if (!this.propertyTracks.has(key)) {
+      this.propertyTracks.set(key, []);
     }
-    const track = this.tracks.get(boneId);
-    track.push(new Keyframe(time, boneId, angle));
+    const track = this.propertyTracks.get(key);
+    track.push({ time, value });
     track.sort((a, b) => a.time - b.time);
   }
 }
@@ -41,7 +39,6 @@ export class AnimationPlayer {
     this.time = 0;
   }
 
-  // Advance time and apply interpolated bone angles
   update(dt) {
     if (!this.clip || !this.enabled || !this.playing) return;
 
@@ -63,40 +60,51 @@ export class AnimationPlayer {
   }
 
   _apply() {
-    for (const [boneId, track] of this.clip.tracks) {
+    for (const [trackKey, track] of this.clip.propertyTracks) {
+      if (track.length === 0) continue;
+      const sepIdx = trackKey.lastIndexOf(':');
+      const boneId = trackKey.slice(0, sepIdx);
+      const property = trackKey.slice(sepIdx + 1);
       const bone = this.skeleton.getBone(boneId);
-      if (!bone || track.length === 0) continue;
+      if (!bone) continue;
 
-      const t = this.time;
-
-      // Find surrounding keyframes
-      let prev = track[track.length - 1];
-      let next = track[0];
-
-      for (let i = 0; i < track.length; i++) {
-        if (track[i].time <= t) prev = track[i];
-        if (track[i].time >= t) { next = track[i]; break; }
-      }
-
-      if (prev === next || prev.time === next.time) {
-        bone.angle = prev.angle;
-      } else {
-        // Handle wrap-around for looping
-        let prevTime = prev.time;
-        let nextTime = next.time;
-        let currentTime = t;
-
-        if (prevTime > nextTime) {
-          // Wrapped: prev is near end, next is near start
-          nextTime += this.clip.duration;
-          if (currentTime < prevTime) currentTime += this.clip.duration;
-        }
-
-        const alpha = (currentTime - prevTime) / (nextTime - prevTime);
-        // Sine ease in-out for organic feel
-        const eased = 0.5 - 0.5 * Math.cos(alpha * Math.PI);
-        bone.angle = prev.angle + (next.angle - prev.angle) * eased;
+      const value = this._interpolateTrack(track);
+      switch (property) {
+        case 'rotation':  bone.rotation = value;  break;
+        case 'positionX': bone.positionX = value; break;
+        case 'positionY': bone.positionY = value; break;
+        case 'scaleX':    bone.scaleX = value;    break;
+        case 'scaleY':    bone.scaleY = value;    break;
       }
     }
+  }
+
+  _interpolateTrack(track) {
+    const t = this.time;
+
+    let prev = track[track.length - 1];
+    let next = track[0];
+
+    for (let i = 0; i < track.length; i++) {
+      if (track[i].time <= t) prev = track[i];
+      if (track[i].time >= t) { next = track[i]; break; }
+    }
+
+    if (prev === next || prev.time === next.time) {
+      return prev.value;
+    }
+
+    let prevTime = prev.time;
+    let nextTime = next.time;
+    let currentTime = t;
+
+    if (prevTime > nextTime) {
+      nextTime += this.clip.duration;
+      if (currentTime < prevTime) currentTime += this.clip.duration;
+    }
+
+    const alpha = (currentTime - prevTime) / (nextTime - prevTime);
+    const eased = 0.5 - 0.5 * Math.cos(alpha * Math.PI);
+    return prev.value + (next.value - prev.value) * eased;
   }
 }

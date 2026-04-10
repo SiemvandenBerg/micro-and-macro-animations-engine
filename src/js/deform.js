@@ -63,13 +63,14 @@ export class PathDeformer {
         const bone = this.skeleton.getBone(inf.boneId);
         if (!bone) continue;
 
-        // Displacement = how far the bone's angle deviates from its base angle
-        const angleDelta = bone.angle - bone.baseAngle;
+        // Displacement = how far the bone's rotation deviates from rest
+        const angleDelta = bone.rotation - bone.restRotation;
 
         // Convert angular displacement into a positional offset
-        // perpendicular to the bone direction, scaled by weight and bone length
-        const perpX = -Math.sin(bone.worldAngle) * angleDelta * bone.length * inf.weight;
-        const perpY =  Math.cos(bone.worldAngle) * angleDelta * bone.length * inf.weight;
+        // perpendicular to the bone direction, scaled by weight
+        const boneLen = Math.hypot(bone.anchorWorldX - bone.worldX, bone.anchorWorldY - bone.worldY) || 1;
+        const perpX = -Math.sin(bone.worldAngle) * angleDelta * boneLen * inf.weight;
+        const perpY =  Math.cos(bone.worldAngle) * angleDelta * boneLen * inf.weight;
 
         dx += perpX;
         dy += perpY;

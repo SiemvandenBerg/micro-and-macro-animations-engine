@@ -10,6 +10,11 @@
   <div id="app">
     <div id="canvas-container">
       <canvas id="canvas"></canvas>
+      <div id="zoom-controls">
+        <button id="zoom-out" title="Zoom out 10%">−</button>
+        <span id="zoom-level">100%</span>
+        <button id="zoom-in" title="Zoom in 10%">+</button>
+      </div>
     </div>
     <aside id="dev-panel">
       <div class="panel-header">
@@ -25,6 +30,20 @@
       const panel = document.getElementById('dev-panel');
       panel.classList.toggle('collapsed');
       this.textContent = panel.classList.contains('collapsed') ? '▶' : '◀';
+    });
+
+    // Zoom controls
+    function updateZoomUI() {
+      document.getElementById('zoom-level').textContent = Math.round(window.__engine.userZoom * 100) + '%';
+    }
+    window.updateZoomUI = updateZoomUI;
+    document.getElementById('zoom-in').addEventListener('click', () => {
+      window.__engine.userZoom = Math.min(5, window.__engine.userZoom + 0.1);
+      updateZoomUI();
+    });
+    document.getElementById('zoom-out').addEventListener('click', () => {
+      window.__engine.userZoom = Math.max(0.1, window.__engine.userZoom - 0.1);
+      updateZoomUI();
     });
   </script>
 </body>
