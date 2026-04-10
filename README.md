@@ -1,55 +1,73 @@
 # Micro and Macro Animations Engine
 
-Initial repository scaffold for the Micro and Macro Animations Engine project.
+An animation engine for building stylized character motion from a 3D skeleton that is rendered as a clean 2D visual output.
 
 ## Status
 
-This repository is initialized and ready for the first implementation commit.
+This repository is initialized and ready for implementation.
 
-## Suggested GitHub Repository Name
+## Repository
 
-`micro-and-macro-animations-engine`
+Suggested GitHub repository name: `micro-and-macro-animations-engine`
+Luuk and Siem van both push to main without PR but merge from the latest main before pushing. Commits should be direct and practical, with clear titles. Consider using emoji markers in commit titles if they improve scanability.
 
-Todo:
+## Pitch
 
-- Set up Luuk: ★
-  - Login GitHub CoPilot
-  - GitHub credentials and token key
-  - Set up git
-  - Set up Task Shortcuts
+The goal of this project is to create a flexible animation engine for designing, editing, and exporting motion in both GIF and Lottie formats. The core idea is a skeleton-driven workflow where the skeleton moves through 3D space while the visible body remains projected in 2D with accurate limb placement.
 
+The engine should also support a vector-based art workflow: create artwork in the tool, export it for editing in Figma, then reimport and overwrite the source asset without breaking the animation pipeline. Animation data should be stored in a JSON structure that can be adapted to Lottie-compatible output and used across design and prototyping workflows.
 
-Goals   
-- Skeleton can move in 3D space but Body always projects in 2D space with correct limb positioning
-- Draw Vector > Export > edit in Figma > Reimport and Overwrite
-- Develop: extract skeleton nodes > steps
-  - Get and dump all bones and joints do a JSON file
-- Store all animation data in a JSON file compatible to Lottie
-- Export full animation to GIFs and Lottie
+## Core Goals
 
-Psuedo code for the main functions:
-- DrawSkeleton()
-- DrawVector()
+- Support a skeleton that moves in 3D space while the rendered character body remains correctly projected in 2D.
+- Enable a vector workflow: draw, export, edit in Figma, reimport, and overwrite existing artwork.
+- Extract skeleton nodes, bones, and joints into structured JSON data for tooling and debugging.
+- Store animation data in a JSON format that is compatible with or translatable to Lottie.
+- Export completed animations to both GIF and Lottie.
 
-Stretch goals;
-- Include simple 2D objects to interact with in the scene
-- wireframe low res gif or Lottie for use in Figma and prototypes
-- particle effects in the animation that trigger at exact points and moments
-- Track animation movement with camera
+## Main Engine Functions
 
-Animation controls:
-- Dev View with real-time controls and tweaks
-- Set color scheme
-- Toggle styles
+Initial high-level function ideas:
 
-Technique
-- Open source skeleton?
-- Animation from BHV to custom
-- Use Greensock
-- Install Edge Animate as well?
+- `DrawSkeleton()`
+- `DrawVector()`
 
-Devops
-- Straight commit but merge first always
-- Shared repo
-- Luuk VS code explain screenshot
-  - Use emoji in titles (rename with f2)
+## Stretch Goals
+
+- Add simple 2D scene objects that can interact with the animated character.
+- Generate low-resolution wireframe GIF or Lottie previews for Figma and prototype workflows.
+- Trigger particle effects at precise animation moments.
+- Track animation movement with a camera system.
+
+## Animation Controls
+
+- Provide a developer view with real-time controls and tweakable parameters.
+- Allow color scheme adjustments.
+- Allow style toggles for different rendering modes.
+
+## Technical Direction
+
+- Evaluate whether to use an open-source skeleton system as a foundation.
+- Investigate converting BVH animation data into a custom internal format.
+- Explore using GreenSock where it helps with timeline control or motion tooling.
+- Assess whether Adobe Edge Animate has any practical role in the workflow.
+
+## Collaboration And DevOps
+
+- Use a shared repository workflow.
+- Keep commits direct and practical, but merge from the latest shared state first.
+- Document the VS Code setup for collaborators such as Luuk.
+- Use clear naming conventions in titles; emoji-based markers can be considered where they improve scanability.
+
+## AI Tutor Setup
+
+- Configure a GitHub Copilot persona with project instructions, preferences, and memory so the agent can assist consistently during development.
+
+## Onboarding Todo
+
+### Set Up Luuk
+
+- Log in to GitHub Copilot.
+- Configure GitHub credentials and token access.
+- Set up Git locally.
+- Set up task shortcuts.
