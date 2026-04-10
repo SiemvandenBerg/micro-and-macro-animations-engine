@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Micro &amp; Macro Animations Engine</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app">
+    <div id="canvas-container">
+      <canvas id="canvas"></canvas>
+    </div>
+    <aside id="dev-panel">
+      <div class="panel-header">
+        <h2>Dev Controls</h2>
+        <button id="toggle-panel" title="Collapse">◀</button>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module" src="js/engine.js"></script>
+  <script>
+    document.getElementById('toggle-panel').addEventListener('click', function() {
+      const panel = document.getElementById('dev-panel');
+      panel.classList.toggle('collapsed');
+      this.textContent = panel.classList.contains('collapsed') ? '▶' : '◀';
+    });
+  </script>
+</body>
+</html>

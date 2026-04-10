@@ -1,0 +1,184 @@
+/* styles.css — Dev panel and canvas layout */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+/* Canvas area */
+#canvas-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+#canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Dev panel */
+#dev-panel {
+  width: 280px;
+  min-width: 280px;
+  background: #222;
+  border-left: 1px solid #333;
+  overflow-y: auto;
+  transition: width 0.2s ease, min-width 0.2s ease, padding 0.2s ease;
+  padding: 0 12px 12px;
+}
+
+#dev-panel.collapsed {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 8px;
+  border-bottom: 1px solid #333;
+  margin-bottom: 8px;
+  position: sticky;
+  top: 0;
+  background: #222;
+  z-index: 1;
+}
+
+.panel-header h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #aaa;
+}
+
+.panel-header button {
+  background: none;
+  border: 1px solid #444;
+  color: #aaa;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-header button:hover {
+  background: #333;
+  color: #fff;
+}
+
+/* Control sections */
+.control-section {
+  margin-bottom: 16px;
+}
+
+.control-section h3 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #ff3366;
+  margin-bottom: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #333;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  min-height: 24px;
+}
+
+.control-row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.control-row input[type="checkbox"] {
+  accent-color: #ff3366;
+  width: 14px;
+  height: 14px;
+}
+
+.slider-label {
+  font-size: 10px;
+  color: #888;
+  min-width: 70px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.control-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  accent-color: #ff3366;
+  cursor: pointer;
+}
+
+.slider-value {
+  font-size: 10px;
+  color: #666;
+  min-width: 32px;
+  text-align: right;
+}
+
+.control-row button {
+  background: #333;
+  border: 1px solid #444;
+  color: #ddd;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: inherit;
+}
+
+.control-row button:hover {
+  background: #444;
+  color: #fff;
+}
+
+/* Scrollbar */
+#dev-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+#dev-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#dev-panel::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 3px;
+}
