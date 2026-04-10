@@ -22,6 +22,42 @@ export class AnimationClip {
     track.push({ time, value });
     track.sort((a, b) => a.time - b.time);
   }
+
+  // Remove all keyframes from every track
+  clearKeyframes() {
+    this.propertyTracks.clear();
+  }
+
+  // Move all keyframes at oldTime to newTime for the given boneId
+  moveKeyframe(boneId, oldTime, newTime) {
+    const ot = Math.round(oldTime * 1000) / 1000;
+    const nt = Math.max(0, Math.min(this.duration, Math.round(newTime * 1000) / 1000));
+    for (const [key, track] of this.propertyTracks) {
+      const kb = key.slice(0, key.lastIndexOf(':'));
+      if (kb !== boneId) continue;
+      const idx = track.findIndex(kf => Math.abs(kf.time - ot) < 0.005);
+      if (idx < 0) continue;
+      track[idx].time = nt;
+      track.sort((a, b) => a.time - b.time);
+    }
+  }
+
+  // Add or replace a keyframe at exactly this time (rounded to 3 decimal places)
+  upsertKeyframe(time, boneId, property, value) {
+    const t = Math.round(time * 1000) / 1000;
+    const key = `${boneId}:${property}`;
+    if (!this.propertyTracks.has(key)) {
+      this.propertyTracks.set(key, []);
+    }
+    const track = this.propertyTracks.get(key);
+    const existing = track.findIndex(kf => Math.abs(kf.time - t) < 0.001);
+    if (existing >= 0) {
+      track[existing].value = value;
+    } else {
+      track.push({ time: t, value });
+      track.sort((a, b) => a.time - b.time);
+    }
+  }
 }
 
 export class AnimationPlayer {

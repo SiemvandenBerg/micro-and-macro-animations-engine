@@ -3,8 +3,9 @@
 import { Skeleton } from './skeleton.js';
 import { ShapeRenderer } from './shapes.js';
 import { PathDeformer } from './deform.js';
-import { AnimationPlayer } from './animation.js';
+import { AnimationPlayer, AnimationClip } from './animation.js';
 import { DevControls } from './controls.js';
+import { Timeline } from './timeline.js';
 import { LottieImporter } from './lottie-importer.js';
 import { buildSkeleton, buildShapes, buildDeformBindings, buildIdleClip } from './character.js';
 
@@ -20,6 +21,7 @@ export class Engine {
     this.deformer = new PathDeformer(this.skeleton, this.shapeRenderer);
     this.player = new AnimationPlayer(this.skeleton);
     this.controls = new DevControls(this);
+    this.timeline  = new Timeline(this);
 
     // Timing
     this._lastTime = 0;
@@ -28,6 +30,10 @@ export class Engine {
     // User zoom (1.0 = fit-to-canvas default)
     this.userZoom = 1.0;
     this._lottieMeta = null;  // set when a Lottie file is loaded
+
+    // Drag state
+    this._drag = null;          // { bone, wasPaused }
+    this._hoverBoneId = null;
   }
 
   init() {
@@ -50,6 +56,13 @@ export class Engine {
 
     // Init dev panel
     this.controls.init();
+
+    // Build timeline (init wires listeners once; build populates DOM)
+    this.timeline.init();
+    this.timeline.build();
+
+    // Wire up bone-drag interaction
+    this._initDrag();
   }
 
   // Load and play a Lottie JSON animation, replacing the current character
@@ -94,6 +107,7 @@ export class Engine {
 
     // Rebuild controls for new rig
     this.controls.init();
+    this.timeline.build();
     if (typeof window.updateZoomUI === 'function') window.updateZoomUI();
 
     console.log(`Lottie loaded: "${result.meta.name}" (${result.bones.length} bones, ${result.shapes.length} shapes, ${result.meta.duration.toFixed(1)}s)`);
@@ -171,6 +185,19 @@ export class Engine {
     console.log(`Animation (rotations only) loaded from "${result.meta.name}" → mapped: ${[...boneMap.entries()].map(([s,t]) => s+'→'+t).join(', ')}`);
   }
 
+  // Load an animation clip from the exported {name, duration, loop, tracks} JSON format.
+  // Applies to the current skeleton without replacing it.
+  loadAnimationJSON(data) {
+    const clip = new AnimationClip(data.name || 'imported', data.duration || 1, data.loop !== false);
+    for (const [key, kfs] of Object.entries(data.tracks || {})) {
+      clip.propertyTracks.set(key, kfs.map(kf => ({ time: kf.time, value: kf.value })));
+    }
+    this.player.play(clip);
+    this.player.playing = false;
+    this.timeline.build();
+    console.log(`Animation JSON loaded: "${clip.name}" (${clip.duration.toFixed(2)}s, ${clip.propertyTracks.size} tracks)`);
+  }
+
   // Reset to the built-in character rig
   loadBuiltinCharacter() {
     this.skeleton = new Skeleton();
@@ -195,6 +222,7 @@ export class Engine {
     this.player.playing = true;
 
     this.controls.init();
+    this.timeline.build();
     if (typeof window.updateZoomUI === 'function') window.updateZoomUI();
   }
 
@@ -215,6 +243,7 @@ export class Engine {
 
     this.controls.updateTimeSlider();
     this.controls.updateBoneIndicators();
+    this.timeline.update();
 
     requestAnimationFrame((t) => this._loop(t));
   }
@@ -261,6 +290,120 @@ export class Engine {
     }
 
     ctx.restore();
+  }
+
+  // Convert a canvas pixel coordinate to world (pre-scale) space
+  _canvasToWorld(cx, cy) {
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+    const totalScale = this.scale * this.userZoom;
+    return {
+      x: (cx - w / 2) / totalScale + w / 2 / this.scale,
+      y: (cy - h / 2) / totalScale + h / 2 / this.scale,
+    };
+  }
+
+  // Write the dragged parent bone's current rotation as a keyframe at player.time.
+  _writeDragKeyframe() {
+    if (!this._drag || !this.player.clip) return;
+    const bone = this._drag.bone;
+    const parent = bone.parentId ? this.skeleton.getBone(bone.parentId) : bone;
+    const t = this.player.time;
+    this.player.clip.upsertKeyframe(t, parent.id, 'rotation', parent.rotation);
+    // Remember what was last written so endDrag can highlight it
+    this._lastDragKf = { boneId: parent.id, time: t };
+  }
+
+  // Rotate bone's parent so that the bone's joint follows the target world position.
+  // This matches the rotation-slider behaviour: rotating a parent bone sweeps the child joint.
+  _rotateBoneTowardWorld(bone, wx, wy) {
+    const parent = bone.parentId ? this.skeleton.getBone(bone.parentId) : null;
+    if (!parent) {
+      // Root bone has no parent to rotate — fall back to translation
+      bone.positionX = wx - this.skeleton.rootX;
+      bone.positionY = wy - this.skeleton.rootY;
+      return;
+    }
+
+    // grandparent's accumulated world angle (everything above parent)
+    const gp = parent.parentId ? this.skeleton.getBone(parent.parentId) : null;
+    const gpAngle = gp ? gp.worldAngle : 0;
+
+    // Vector from parent origin to cursor in world space
+    const dx = wx - parent.worldX;
+    const dy = wy - parent.worldY;
+
+    // Angle from parent origin to cursor
+    const targetAngle = Math.atan2(dy, dx);
+
+    // The bone's position offset defines its "direction" in parent-local space
+    const localAngle = Math.atan2(bone.positionY, bone.positionX);
+
+    // Set parent rotation so the bone's direction aligns with the target angle
+    parent.rotation = targetAngle - localAngle - gpAngle;
+  }
+
+  _initDrag() {
+    const HIT_PX = 10; // hit radius in screen pixels
+
+    const nearestBone = (cx, cy) => {
+      const { x: wx, y: wy } = this._canvasToWorld(cx, cy);
+      const hitWorld = HIT_PX / (this.scale * this.userZoom);
+      let best = null, bestDist = Infinity;
+      for (const bone of this.skeleton.bones.values()) {
+        const d = Math.hypot(bone.worldX - wx, bone.worldY - wy);
+        if (d < hitWorld && d < bestDist) { best = bone; bestDist = d; }
+      }
+      return best;
+    };
+
+    this.canvas.addEventListener('mousedown', (e) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const bone = nearestBone(e.clientX - rect.left, e.clientY - rect.top);
+      if (!bone) return;
+      e.preventDefault();
+      this._drag = { bone, wasPaused: !this.player.playing };
+      this.player.playing = false;
+      this.skeleton.highlightBoneId = bone.id;
+      this.canvas.style.cursor = 'grabbing';
+    });
+
+    // Use window events for move/up so drag keeps working when cursor leaves canvas
+    window.addEventListener('mousemove', (e) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+
+      if (this._drag) {
+        const { x: wx, y: wy } = this._canvasToWorld(cx, cy);
+        this._rotateBoneTowardWorld(this._drag.bone, wx, wy);
+        this.skeleton.solve();
+        // Write/update the keyframe at the current playhead time
+        this._writeDragKeyframe();
+        return;
+      }
+
+      // Hover highlight — only when the pointer is actually inside the canvas
+      if (e.target === this.canvas) {
+        const hovered = nearestBone(cx, cy);
+        this._hoverBoneId = hovered ? hovered.id : null;
+        this.skeleton.highlightBoneId = this._hoverBoneId;
+        this.canvas.style.cursor = hovered ? 'grab' : 'default';
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!this._drag) return;
+      const kf = this._lastDragKf;
+      // Rebuild timeline so new/updated keyframe diamonds are visible
+      this.timeline.build();
+      // Auto-select the diamond that was just written for visual confirmation
+      if (kf) this.timeline.selectKeyframe(kf.boneId, kf.time);
+      this._drag = null;
+      this._lastDragKf = null;
+      this.skeleton.highlightBoneId = this._hoverBoneId;
+      this.canvas.style.cursor = this._hoverBoneId ? 'grab' : 'default';
+    });
   }
 
   _sizeCanvas() {

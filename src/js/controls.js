@@ -80,9 +80,15 @@ export class DevControls {
       reader.onload = (ev) => {
         try {
           const data = JSON.parse(ev.target.result);
-          this.engine.loadLottie(data);
+          // Detect format: our exported animation JSON has a 'tracks' key;
+          // Lottie files have 'v' and 'layers'.
+          if (data.tracks && !data.layers) {
+            this.engine.loadAnimationJSON(data);
+          } else {
+            this.engine.loadLottie(data);
+          }
         } catch (err) {
-          console.error('Failed to load Lottie file:', err);
+          console.error('Failed to load JSON file:', err);
         }
       };
       reader.readAsText(file);
@@ -126,6 +132,23 @@ export class DevControls {
       animRow.appendChild(btn);
     }
     animSection.appendChild(animRow);
+
+    // Clear animation button
+    const clearRow = document.createElement('div');
+    clearRow.className = 'control-row';
+    clearRow.style.marginTop = '4px';
+    const clearBtn = document.createElement('button');
+    clearBtn.textContent = '✕ Clear animation';
+    clearBtn.title = 'Remove all keyframes from the current clip';
+    clearBtn.addEventListener('click', () => {
+      if (!this.engine.player.clip) return;
+      this.engine.player.clip.clearKeyframes();
+      this.engine.player.playing = false;
+      this.engine.timeline.build();
+    });
+    clearRow.appendChild(clearBtn);
+    animSection.appendChild(clearRow);
+
     section.appendChild(animSection);
   }
 
@@ -175,7 +198,7 @@ export class DevControls {
   }
 
   _buildBoneControls() {
-    const section = this._section('Bone Angles');
+    const section = this._section('Bone Angles', true);
 
     for (const bone of this.engine.skeleton.bones.values()) {
       // Container for this bone's controls
@@ -277,6 +300,40 @@ export class DevControls {
     btn.addEventListener('click', () => this._exportShapeSVGs());
     row.appendChild(btn);
     section.appendChild(row);
+
+    const animRow = document.createElement('div');
+    animRow.className = 'control-row';
+    const animBtn = document.createElement('button');
+    animBtn.textContent = 'Export animation as JSON';
+    animBtn.addEventListener('click', () => this._exportAnimationJSON());
+    animRow.appendChild(animBtn);
+    section.appendChild(animRow);
+  }
+
+  _exportAnimationJSON() {
+    const clip = this.engine.player.clip;
+    if (!clip) return;
+
+    // Serialise the clip into a plain object
+    const tracks = {};
+    for (const [key, kfs] of clip.propertyTracks) {
+      tracks[key] = kfs.map(kf => ({ time: kf.time, value: kf.value }));
+    }
+    const data = {
+      name: clip.name,
+      duration: clip.duration,
+      loop: clip.loop,
+      tracks,
+    };
+
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${clip.name || 'animation'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async _exportShapeSVGs() {
@@ -427,14 +484,31 @@ export class DevControls {
 
   // --- DOM helpers ---
 
-  _section(title) {
+  _section(title, collapsed = false) {
     const sec = document.createElement('div');
     sec.className = 'control-section';
+
     const h = document.createElement('h3');
-    h.textContent = title;
+    const chevron = document.createElement('span');
+    chevron.className = 'section-chevron';
+    chevron.textContent = collapsed ? '▶' : '▼';
+    h.appendChild(chevron);
+    h.appendChild(document.createTextNode(' ' + title));
+    h.style.cursor = 'pointer';
     sec.appendChild(h);
+
+    const body = document.createElement('div');
+    body.className = 'section-body';
+    if (collapsed) body.classList.add('collapsed');
+    sec.appendChild(body);
+
+    h.addEventListener('click', () => {
+      const isCollapsed = body.classList.toggle('collapsed');
+      chevron.textContent = isCollapsed ? '▶' : '▼';
+    });
+
     this.panel.appendChild(sec);
-    return sec;
+    return body;
   }
 
   _toggle(parent, label, initial, onChange) {

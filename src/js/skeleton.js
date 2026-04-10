@@ -159,9 +159,21 @@ export class Skeleton {
       }
 
       // Joint dot at bone origin
+      ctx.setLineDash([]);
+      const isHighlighted = bone.id === this.highlightBoneId;
+      ctx.fillStyle = isHighlighted ? '#ffffff' : '#ff3366';
+      ctx.strokeStyle = '#ff3366';
+      ctx.lineWidth = (isHighlighted ? 2 : 0) / screenScale;
       ctx.beginPath();
-      ctx.arc(bone.worldX, bone.worldY, 3, 0, Math.PI * 2);
+      ctx.arc(bone.worldX, bone.worldY, (isHighlighted ? 5 : 3) / screenScale, 0, Math.PI * 2);
       ctx.fill();
+      if (isHighlighted) ctx.stroke();
+
+      // Reset styles for next iteration
+      ctx.fillStyle = '#ff3366';
+      ctx.strokeStyle = '#ff3366';
+      ctx.lineWidth = 1 / screenScale;
+      ctx.setLineDash([4 / screenScale, 4 / screenScale]);
 
       // Label
       ctx.setLineDash([]);

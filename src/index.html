@@ -8,28 +8,49 @@
 </head>
 <body>
   <div id="app">
-    <div id="canvas-container">
-      <canvas id="canvas"></canvas>
-      <div id="zoom-controls">
-        <button id="zoom-out" title="Zoom out 10%">−</button>
-        <span id="zoom-level">100%</span>
-        <button id="zoom-in" title="Zoom in 10%">+</button>
+    <div id="main-area">
+      <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+        <div id="zoom-controls">
+          <button id="zoom-out" title="Zoom out 10%">−</button>
+          <span id="zoom-level">100%</span>
+          <button id="zoom-in" title="Zoom in 10%">+</button>
+        </div>
+      </div>
+      <!-- Timeline panel -->
+      <div id="timeline">
+        <div id="timeline-header">
+          <button id="timeline-toggle-play" title="Play/Pause">⏸</button>
+          <span id="timeline-time">0.00s</span>
+          <div id="timeline-scrubber-wrap">
+            <canvas id="timeline-canvas"></canvas>
+          </div>
+        </div>
+        <div id="timeline-tracks"></div>
       </div>
     </div>
     <aside id="dev-panel">
       <div class="panel-header">
         <h2>Dev Controls</h2>
-        <button id="toggle-panel" title="Collapse">◀</button>
+        <button id="toggle-panel" title="Collapse">▶</button>
       </div>
     </aside>
+    <button id="expand-panel" title="Open Dev Controls">◀</button>
   </div>
 
   <script type="module" src="js/engine.js"></script>
   <script>
     document.getElementById('toggle-panel').addEventListener('click', function() {
       const panel = document.getElementById('dev-panel');
-      panel.classList.toggle('collapsed');
-      this.textContent = panel.classList.contains('collapsed') ? '▶' : '◀';
+      const expandBtn = document.getElementById('expand-panel');
+      panel.classList.add('collapsed');
+      expandBtn.style.display = 'flex';
+    });
+
+    document.getElementById('expand-panel').addEventListener('click', function() {
+      const panel = document.getElementById('dev-panel');
+      panel.classList.remove('collapsed');
+      this.style.display = 'none';
     });
 
     // Zoom controls
