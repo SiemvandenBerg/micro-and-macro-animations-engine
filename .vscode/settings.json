@@ -1,5 +1,6 @@
 {
-  "VssTaskButtons": [
+  "VsCodeTaskButtons.showCounter": true,
+  "VsCodeTaskButtons.tasks": [
     {
       "label": "🚀 Dev",
       "task": "🚀 Dev Server",
@@ -20,5 +21,25 @@
       "task": "🔼 Git Push",
       "tooltip": "Push to origin main"
     }
-  ]
+  ],
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#e77497",
+    "activityBar.background": "#e77497",
+    "activityBar.foreground": "#15202b",
+    "activityBar.inactiveForeground": "#15202b99",
+    "activityBarBadge.background": "#aeec92",
+    "activityBarBadge.foreground": "#15202b",
+    "commandCenter.border": "#e7e7e799",
+    "sash.hoverBorder": "#e77497",
+    "statusBar.background": "#df4977",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#e77497",
+    "statusBarItem.remoteBackground": "#df4977",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "titleBar.activeBackground": "#df4977",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#df497799",
+    "titleBar.inactiveForeground": "#e7e7e799"
+  },
+  "peacock.color": "#df4977"
 }
