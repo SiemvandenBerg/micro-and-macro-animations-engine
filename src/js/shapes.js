@@ -40,10 +40,12 @@ export class ShapeRenderer {
       ctx.translate(shape.binding.offset.x, shape.binding.offset.y);
       ctx.rotate(shape.binding.rotation || 0);
 
-      // Style: white fill, black stroke
-      ctx.fillStyle = '#ffffff';
+      // Style: per-shape fill or default white, black stroke
+      // Divide lineWidth by the current x-scale so strokes stay ~2px on screen
+      const screenScale = ctx.getTransform().a || 1;
+      ctx.fillStyle = shape.fill || '#ffffff';
       ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 / screenScale;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
 

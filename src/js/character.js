@@ -67,59 +67,66 @@ export function buildShapes(renderer) {
   };
 
   // Draw order: legs back, torso, arms front, head on top
+  // Shapes are centered along their bone: offset.x = bone.length/2, width = bone.length.
+  // The renderer translates to bone.worldX/Y and rotates by worldAngle, so
+  // local +X runs along the bone toward its child joint; local +Y is perpendicular.
 
-  // Left leg
-  s('thigh_L', 'rect', { width: 14, height: 30, radius: 5 },
-    { boneId: 'hip_L',  offset: { x: 0, y: 15 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 1);
-  s('shin_L',  'rect', { width: 12, height: 32, radius: 5 },
-    { boneId: 'knee_L', offset: { x: 0, y: 16 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 1);
+  // Left leg  (hip_L=30, knee_L=32, foot_L=8)
+  // offset.x = half bone length (along bone); width = bone length, height = limb width
+  s('thigh_L', 'rect', { width: 30, height: 14, radius: 5 },
+    { boneId: 'hip_L',  offset: { x: 15, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 1);
+  s('shin_L',  'rect', { width: 32, height: 12, radius: 5 },
+    { boneId: 'knee_L', offset: { x: 16, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 1);
   s('foot_shape_L', 'rect', { width: 16, height: 8, radius: 3 },
-    { boneId: 'foot_L', offset: { x: 4, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 1);
+    { boneId: 'foot_L', offset: { x: 8,  y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 1);
 
-  // Right leg
-  s('thigh_R', 'rect', { width: 14, height: 30, radius: 5 },
-    { boneId: 'hip_R',  offset: { x: 0, y: 15 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 2);
-  s('shin_R',  'rect', { width: 12, height: 32, radius: 5 },
-    { boneId: 'knee_R', offset: { x: 0, y: 16 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 2);
+  // Right leg  (hip_R=30, knee_R=32, foot_R=8)
+  s('thigh_R', 'rect', { width: 30, height: 14, radius: 5 },
+    { boneId: 'hip_R',  offset: { x: 15, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 2);
+  s('shin_R',  'rect', { width: 32, height: 12, radius: 5 },
+    { boneId: 'knee_R', offset: { x: 16, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 2);
   s('foot_shape_R', 'rect', { width: 16, height: 8, radius: 3 },
-    { boneId: 'foot_R', offset: { x: 4, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 2);
+    { boneId: 'foot_R', offset: { x: 8,  y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 2);
 
-  // Torso
-  s('torso', 'rect', { width: 44, height: 70, radius: 8 },
-    { boneId: 'spine', offset: { x: 0, y: 35 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 5);
+  // Torso: one rect spanning spine (40) + chest (35) = 75px, centered on spine
+  s('torso', 'rect', { width: 75, height: 44, radius: 8 },
+    { boneId: 'spine', offset: { x: 37.5, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 5);
 
-  // Left arm
-  s('upper_arm_L', 'rect', { width: 10, height: 28, radius: 4 },
-    { boneId: 'shoulder_L', offset: { x: 0, y: 14 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 6);
-  s('lower_arm_L', 'rect', { width: 9, height: 26, radius: 4 },
-    { boneId: 'elbow_L',    offset: { x: 0, y: 13 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 6);
-  s('hand_shape_L', 'ellipse', { rx: 6, ry: 7 },
-    { boneId: 'hand_L',     offset: { x: 0, y: 7 },  pivot: { x: 0, y: 0 }, rotation: 0 }, 6);
+  // Left arm  (shoulder_L=20, elbow_L=28, hand_L=14)
+  s('upper_arm_L', 'rect', { width: 20, height: 10, radius: 4 },
+    { boneId: 'shoulder_L', offset: { x: 10, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 6);
+  s('lower_arm_L', 'rect', { width: 28, height: 9,  radius: 4 },
+    { boneId: 'elbow_L',    offset: { x: 14, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 6);
+  s('hand_shape_L', 'ellipse', { rx: 7, ry: 7 },
+    { boneId: 'hand_L',     offset: { x: 7,  y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 6);
 
-  // Right arm
-  s('upper_arm_R', 'rect', { width: 10, height: 28, radius: 4 },
-    { boneId: 'shoulder_R', offset: { x: 0, y: 14 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 7);
-  s('lower_arm_R', 'rect', { width: 9, height: 26, radius: 4 },
-    { boneId: 'elbow_R',    offset: { x: 0, y: 13 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 7);
-  s('hand_shape_R', 'ellipse', { rx: 6, ry: 7 },
-    { boneId: 'hand_R',     offset: { x: 0, y: 7 },  pivot: { x: 0, y: 0 }, rotation: 0 }, 7);
+  // Right arm  (shoulder_R=20, elbow_R=28, hand_R=14)
+  s('upper_arm_R', 'rect', { width: 20, height: 10, radius: 4 },
+    { boneId: 'shoulder_R', offset: { x: 10, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 7);
+  s('lower_arm_R', 'rect', { width: 28, height: 9,  radius: 4 },
+    { boneId: 'elbow_R',    offset: { x: 14, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 7);
+  s('hand_shape_R', 'ellipse', { rx: 7, ry: 7 },
+    { boneId: 'hand_R',     offset: { x: 7,  y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 7);
 
-  // Head
-  s('head_shape', 'ellipse', { rx: 18, ry: 22 },
-    { boneId: 'head', offset: { x: 0, y: 10 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 10);
+  // Head: ellipse centered along the head bone (length 20), sitting above neck
+  const headShape = new Shape('head_shape', 'ellipse', { rx: 18, ry: 20 },
+    { boneId: 'head', offset: { x: 10, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 });
+  headShape.drawOrder = 10;
+  headShape.fill = '#ff0000';
+  renderer.addShape(headShape);
 
-  // Torso outline (path for deformation demo)
-  // A simple curved outline along the left side of the torso
+  // Torso outline (path for deformation demo) — left edge of torso along spine+chest
+  // Points are in bone-local space: x = along bone (upward from spine origin), y = perpendicular
   s('torso_outline', 'path', {
     closed: false,
     points: [
-      { x: -22, y: -35 },
-      { x: -24, y: -15 },
-      { x: -23, y:   5 },
-      { x: -22, y:  25 },
-      { x: -20, y:  35 },
+      { x:  0,  y: -22 },
+      { x: 19,  y: -24 },
+      { x: 38,  y: -24 },
+      { x: 57,  y: -23 },
+      { x: 75,  y: -22 },
     ]
-  }, { boneId: 'spine', offset: { x: 0, y: 35 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 5);
+  }, { boneId: 'spine', offset: { x: 0, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 5);
 }
 
 // --- Deform bindings (path deformation demo) ---

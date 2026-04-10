@@ -32,9 +32,7 @@ export class Engine {
     // Build character
     buildSkeleton(this.skeleton);
 
-    // Position root in center of canvas
-    this.skeleton.rootX = this.canvas.width / 2;
-    this.skeleton.rootY = this.canvas.height * 0.65;
+    // Root position is set inside _sizeCanvas(), nothing to override here
 
     buildShapes(this.shapeRenderer);
     buildDeformBindings(this.deformer);
@@ -94,6 +92,10 @@ export class Engine {
     ctx.fillStyle = '#f0f0f0';
     ctx.fillRect(0, 0, w, h);
 
+    // Apply global scale so the rig fills the canvas
+    ctx.save();
+    ctx.scale(this.scale, this.scale);
+
     // Draw shapes (character body)
     this.shapeRenderer.draw(ctx);
 
@@ -101,6 +103,8 @@ export class Engine {
     if (this.showSkeleton) {
       this.skeleton.draw(ctx);
     }
+
+    ctx.restore();
   }
 
   _sizeCanvas() {
@@ -108,10 +112,13 @@ export class Engine {
     this.canvas.width = container.clientWidth;
     this.canvas.height = container.clientHeight;
 
-    // Re-center root if skeleton exists
+    // Scale so the ~200px-tall rig fills ~70% of the canvas height
+    this.scale = (this.canvas.height * 0.70) / 200;
+
+    // Re-center root in pre-scale coordinates
     if (this.skeleton.root) {
-      this.skeleton.rootX = this.canvas.width / 2;
-      this.skeleton.rootY = this.canvas.height * 0.65;
+      this.skeleton.rootX = this.canvas.width  / 2 / this.scale;
+      this.skeleton.rootY = this.canvas.height * 0.62 / this.scale;
     }
   }
 }
