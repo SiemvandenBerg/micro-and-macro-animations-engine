@@ -8,7 +8,7 @@ This repository is initialized and ready for implementation.
 
 ## Repository
 
-Suggested GitHub repository name: `micro-and-macro-animations-engine`
+GitHub repository name: `SiemvandenBerg/micro-and-macro-animations-engine`
 Luuk and Siem van both push to main without PR but merge from the latest main before pushing. Commits should be direct and practical, with clear titles. Consider using emoji markers in commit titles if they improve scanability.
 
 ## Pitch
