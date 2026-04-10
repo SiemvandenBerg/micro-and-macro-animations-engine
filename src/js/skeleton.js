@@ -72,10 +72,11 @@ export class Skeleton {
   // Debug draw: render bones as lines and joints as circles
   draw(ctx) {
     ctx.save();
+    const screenScale = ctx.getTransform().a || 1;
     ctx.strokeStyle = '#ff3366';
     ctx.fillStyle = '#ff3366';
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1.5 / screenScale;
+    ctx.setLineDash([4 / screenScale, 4 / screenScale]);
 
     for (const bone of this.bones.values()) {
       // bone line
@@ -91,9 +92,9 @@ export class Skeleton {
 
       // label
       ctx.setLineDash([]);
-      ctx.font = '9px monospace';
-      ctx.fillText(bone.id, bone.worldX + 5, bone.worldY - 5);
-      ctx.setLineDash([4, 4]);
+      ctx.font = `${9 / screenScale}px monospace`;
+      ctx.fillText(bone.id, bone.worldX + 5 / screenScale, bone.worldY - 5 / screenScale);
+      ctx.setLineDash([4 / screenScale, 4 / screenScale]);
     }
 
     ctx.restore();
