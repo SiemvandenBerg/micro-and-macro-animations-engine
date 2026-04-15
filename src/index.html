@@ -5,11 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Micro &amp; Macro Animations Engine</title>
   <link rel="stylesheet" href="css/styles.css">
+  <!-- Three.js for true 3D puppet rendering (no bundler needed) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js"
+    }
+  }
+  </script>
 </head>
 <body>
   <div id="app">
     <div id="main-area">
       <div id="canvas-container">
+        <div id="bg-ref"></div>
+        <div id="svg-layer"></div>
         <canvas id="canvas"></canvas>
         <div id="zoom-controls">
           <button id="zoom-out" title="Zoom out 10%">−</button>

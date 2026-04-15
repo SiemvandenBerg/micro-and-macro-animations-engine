@@ -104,6 +104,20 @@ export class LottieImporter {
 
   _extractBones(layers) {
     const bones = [];
+
+    // Lottie can have many parentless layers (they're all roots in comp space).
+    // The engine supports only one root, so we inject a synthetic comp-root bone
+    // at the origin and parent all otherwise-rootless layers to it.
+    const COMP_ROOT = '__comp_root';
+    bones.push({
+      id: COMP_ROOT,
+      parentId: null,
+      positionX: 0, positionY: 0,
+      restRotation: 0,
+      anchorX: 0, anchorY: 0,
+      scaleX: 1, scaleY: 1,
+    });
+
     for (const layer of layers) {
       const ks = layer.ks || {};
       const position = this._getStaticValue(ks.p, [0, 0]);
@@ -113,7 +127,8 @@ export class LottieImporter {
 
       bones.push({
         id: this._getBoneId(layer.ind),
-        parentId: layer.parent != null ? this._getBoneId(layer.parent) : null,
+        // If the layer has no Lottie parent, attach it to the comp root
+        parentId: layer.parent != null ? this._getBoneId(layer.parent) : COMP_ROOT,
         positionX: Array.isArray(position) ? position[0] : position,
         positionY: Array.isArray(position) ? position[1] : position,
         restRotation: rotation * Math.PI / 180,

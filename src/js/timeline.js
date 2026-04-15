@@ -141,8 +141,7 @@ export class Timeline {
         dragging = true;
 
         const rect = trackEl.getBoundingClientRect();
-        const LABEL_W = 90;
-        const trackW = rect.width; // .tl-track has no label offset, it's already track-only
+        const trackW = rect.width;
         const frac = Math.max(0, Math.min(1, (me.clientX - rect.left) / trackW));
         currentT = frac * this._duration;
 
@@ -158,6 +157,7 @@ export class Timeline {
           // Commit the move by updating clip data then rebuilding
           const clip = this.engine.player.clip;
           if (clip) {
+            this.engine.pushUndo();
             clip.moveKeyframe(boneId, origT, currentT);
             this.engine.player.seekTo(currentT);
           }
@@ -174,6 +174,7 @@ export class Timeline {
             kf.classList.add('selected');
             this._selectedKfEl = kf;
             this.engine.shapeRenderer.highlightBoneIds = new Set([boneId]);
+            this.engine.skeleton.highlightBoneId = boneId;
           }
         }
       };
@@ -189,6 +190,7 @@ export class Timeline {
       this._selectedKfEl = null;
     }
     this.engine.shapeRenderer.highlightBoneIds = new Set();
+    if (this.engine.skeleton) this.engine.skeleton.highlightBoneId = null;
   }
 
   // Select the keyframe diamond for boneId at the given time (called after drag)
@@ -204,6 +206,7 @@ export class Timeline {
         kf.classList.add('selected');
         this._selectedKfEl = kf;
         this.engine.shapeRenderer.highlightBoneIds = new Set([boneId]);
+        this.engine.skeleton.highlightBoneId = boneId;
         return;
       }
     }

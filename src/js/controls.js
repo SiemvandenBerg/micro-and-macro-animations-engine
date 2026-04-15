@@ -12,15 +12,15 @@ export class DevControls {
     if (!this.panel) return;
 
     // Clear previous controls (keep the panel-header)
-    const header = this.panel.querySelector('.panel-header');
     while (this.panel.children.length > 1) {
       this.panel.removeChild(this.panel.lastChild);
     }
     this._boneSliders = new Map();
 
+    this._buildSliders();
+    this._buildControls();
     this._buildLottieLoader();
     this._buildToggles();
-    this._buildSliders();
     this._buildBoneControls();
     this._buildShapeColors();
     this._buildExport();
@@ -34,6 +34,7 @@ export class DevControls {
       { label: 'Walking Diego', path: null },
       { label: 'Walking Man', path: 'animations/walking/Walking man.json' },
       { label: 'Walking Office Man', path: 'animations/walking/walking office man.json' },
+      { label: 'Catalyst Man', path: null, comingSoon: true },
     ];
 
     const presetRow = document.createElement('div');
@@ -46,6 +47,7 @@ export class DevControls {
       const btn = document.createElement('button');
       btn.textContent = preset.label;
       btn.addEventListener('click', () => {
+        if (preset.comingSoon) { this.engine.loadCatalystMan(); return; }
         if (!preset.path) {
           this.engine.loadBuiltinCharacter();
           return;
@@ -133,22 +135,6 @@ export class DevControls {
     }
     animSection.appendChild(animRow);
 
-    // Clear animation button
-    const clearRow = document.createElement('div');
-    clearRow.className = 'control-row';
-    clearRow.style.marginTop = '4px';
-    const clearBtn = document.createElement('button');
-    clearBtn.textContent = '✕ Clear animation';
-    clearBtn.title = 'Remove all keyframes from the current clip';
-    clearBtn.addEventListener('click', () => {
-      if (!this.engine.player.clip) return;
-      this.engine.player.clip.clearKeyframes();
-      this.engine.player.playing = false;
-      this.engine.timeline.build();
-    });
-    clearRow.appendChild(clearBtn);
-    animSection.appendChild(clearRow);
-
     section.appendChild(animSection);
   }
 
@@ -160,6 +146,15 @@ export class DevControls {
     });
     this._toggle(section, 'Shape attachment', true, (v) => {
       this.engine.shapeRenderer.enabled = v;
+    });
+    this._toggle(section, 'Shape stroke', true, (v) => {
+      this.engine.shapeRenderer.strokeEnabled = v;
+      // Stroke is baked into 3D geometry — rebuild meshes to reflect the change
+      this.engine.renderer3d.buildMeshes(
+        this.engine.shapeRenderer.shapes,
+        this.engine.skeleton,
+        v
+      );
     });
     this._toggle(section, 'Path deformation', true, (v) => {
       this.engine.deformer.enabled = v;
@@ -173,6 +168,54 @@ export class DevControls {
   _buildSliders() {
     const section = this._section('Playback');
 
+    // Y Rotation: slider + number input kept in sync
+    (() => {
+      const row = document.createElement('div');
+      row.className = 'control-row';
+
+      const lbl = document.createElement('span');
+      lbl.className = 'slider-label';
+      lbl.textContent = 'Y Rotation';
+
+      const slider = document.createElement('input');
+      slider.type  = 'range';
+      slider.min   = 0;
+      slider.max   = 360;
+      slider.step  = 1;
+      slider.value = 0;
+      slider.setAttribute('data-control', 'Y Rotation');
+
+      const numInput = document.createElement('input');
+      numInput.type  = 'number';
+      numInput.min   = 0;
+      numInput.max   = 360;
+      numInput.step  = 1;
+      numInput.value = 0;
+      numInput.className = 'slider-value rotation-number';
+
+      const apply = (v) => {
+        const clamped = Math.min(360, Math.max(0, v));
+        slider.value   = clamped;
+        numInput.value = clamped;
+        this.engine.rotationY = clamped;
+      };
+
+      slider.addEventListener('input', () => apply(parseFloat(slider.value)));
+      numInput.addEventListener('input', () => {
+        const v = parseFloat(numInput.value);
+        if (!isNaN(v)) apply(v);
+      });
+      numInput.addEventListener('change', () => {
+        const v = parseFloat(numInput.value);
+        apply(isNaN(v) ? 0 : v);
+      });
+
+      row.appendChild(lbl);
+      row.appendChild(slider);
+      row.appendChild(numInput);
+      section.appendChild(row);
+    })();
+
     this._slider(section, 'Speed', 0, 2, 0.05, 1, (v) => {
       this.engine.player.speed = v;
     });
@@ -183,18 +226,48 @@ export class DevControls {
       this.engine.player.playing = false;
       this.engine.player.seekTo(v);
     });
+  }
+
+  _buildControls() {
+    const section = this._section('Controls');
 
     // Play/pause button
-    const row = document.createElement('div');
-    row.className = 'control-row';
-    const btn = document.createElement('button');
-    btn.textContent = '⏸ Pause';
-    btn.addEventListener('click', () => {
+    const playRow = document.createElement('div');
+    playRow.className = 'control-row';
+    const playBtn = document.createElement('button');
+    playBtn.textContent = '▶ Play';
+    playBtn.addEventListener('click', () => {
       this.engine.player.playing = !this.engine.player.playing;
-      btn.textContent = this.engine.player.playing ? '⏸ Pause' : '▶ Play';
+      playBtn.textContent = this.engine.player.playing ? '⏸ Pause' : '▶ Play';
     });
-    row.appendChild(btn);
-    section.appendChild(row);
+    playRow.appendChild(playBtn);
+    section.appendChild(playRow);
+
+    // Clear animation button
+    const clearRow = document.createElement('div');
+    clearRow.className = 'control-row';
+    const clearBtn = document.createElement('button');
+    clearBtn.textContent = '✕ Clear animation';
+    clearBtn.title = 'Remove all keyframes from the current clip';
+    clearBtn.addEventListener('click', () => {
+      if (!this.engine.player.clip) return;
+      this.engine.pushUndo();
+      this.engine.player.clip.clearKeyframes();
+      this.engine.player.playing = false;
+      this.engine.timeline.build();
+    });
+    clearRow.appendChild(clearBtn);
+    section.appendChild(clearRow);
+
+    // Undo button
+    const undoRow = document.createElement('div');
+    undoRow.className = 'control-row';
+    const undoBtn = document.createElement('button');
+    undoBtn.textContent = '↩ Undo';
+    undoBtn.title = 'Undo last action (Ctrl+Z)';
+    undoBtn.addEventListener('click', () => this.engine.undo());
+    undoRow.appendChild(undoBtn);
+    section.appendChild(undoRow);
   }
 
   _buildBoneControls() {
@@ -237,6 +310,7 @@ export class DevControls {
       sliderVal.className = 'slider-value';
       sliderVal.textContent = deg;
 
+      slider.addEventListener('mousedown', () => this.engine.pushUndo());
       slider.addEventListener('input', () => {
         const v = parseFloat(slider.value);
         sliderVal.textContent = v;

@@ -13,6 +13,7 @@ export class Bone {
     // Animatable local transform (AE layer model)
     this.positionX = 0;      // local position relative to parent anchor
     this.positionY = 0;
+    this.positionZ = 0;      // depth position (0 in rest; set by 3D drag at 90°)
     this.rotation = 0;       // local rotation in radians
     this.scaleX = 1;         // local scale
     this.scaleY = 1;
@@ -22,6 +23,7 @@ export class Bone {
     // Rest pose (for resetPose and delta-based animation transfer)
     this.restPositionX = 0;
     this.restPositionY = 0;
+    this.restPositionZ = 0;
     this.restRotation = 0;
     this.restScaleX = 1;
     this.restScaleY = 1;
@@ -29,12 +31,14 @@ export class Bone {
     // Computed world-space values (updated by solve())
     this.worldX = 0;         // world position of this bone's origin
     this.worldY = 0;
+    this.worldZ = 0;         // world depth position (drives 3D screen projection)
     this.worldAngle = 0;     // accumulated world rotation
     this.worldScaleX = 1;    // accumulated world scale
     this.worldScaleY = 1;
     // World position of anchor (where children attach + shape pivot)
     this.anchorWorldX = 0;
     this.anchorWorldY = 0;
+    this.anchorWorldZ = 0;
   }
 }
 
@@ -84,10 +88,10 @@ export class Skeleton {
   //
   solve() {
     if (!this.root) return;
-    this._solveRecursive(this.root, this.rootX, this.rootY, 0, 1, 1);
+    this._solveRecursive(this.root, this.rootX, this.rootY, 0, 0, 1, 1);
   }
 
-  _solveRecursive(bone, parentAnchorX, parentAnchorY, parentAngle, parentScaleX, parentScaleY) {
+  _solveRecursive(bone, parentAnchorX, parentAnchorY, parentAnchorZ, parentAngle, parentScaleX, parentScaleY) {
     // Step 1-2: Position this bone relative to parent's anchor point
     const cos = Math.cos(parentAngle);
     const sin = Math.sin(parentAngle);
@@ -96,6 +100,9 @@ export class Skeleton {
 
     bone.worldX = parentAnchorX + px * cos - py * sin;
     bone.worldY = parentAnchorY + px * sin + py * cos;
+    // Z is additive (depth offset) — propagated from parent anchor without angular distortion
+    // so positionZ = 0 keeps the bone at the parent’s depth by default.
+    bone.worldZ = parentAnchorZ + (bone.positionZ || 0);
 
     // Step 3-4: Accumulate rotation and scale
     bone.worldAngle = parentAngle + bone.rotation;
@@ -109,10 +116,11 @@ export class Skeleton {
     const ay = -bone.anchorY * bone.worldScaleY;
     bone.anchorWorldX = bone.worldX + ax * wcos - ay * wsin;
     bone.anchorWorldY = bone.worldY + ax * wsin + ay * wcos;
+    bone.anchorWorldZ = bone.worldZ; // Z anchor = Z world (no angular Z propagation)
 
     // Recurse: children attach at this bone's anchor world position
     for (const child of bone.children) {
-      this._solveRecursive(child, bone.anchorWorldX, bone.anchorWorldY,
+      this._solveRecursive(child, bone.anchorWorldX, bone.anchorWorldY, bone.anchorWorldZ,
         bone.worldAngle, bone.worldScaleX, bone.worldScaleY);
     }
   }
@@ -122,6 +130,7 @@ export class Skeleton {
     for (const bone of this.bones.values()) {
       bone.restPositionX = bone.positionX;
       bone.restPositionY = bone.positionY;
+      bone.restPositionZ = bone.positionZ;
       bone.restRotation = bone.rotation;
       bone.restScaleX = bone.scaleX;
       bone.restScaleY = bone.scaleY;
@@ -133,6 +142,7 @@ export class Skeleton {
     for (const bone of this.bones.values()) {
       bone.positionX = bone.restPositionX;
       bone.positionY = bone.restPositionY;
+      bone.positionZ = bone.restPositionZ;
       bone.rotation = bone.restRotation;
       bone.scaleX = bone.restScaleX;
       bone.scaleY = bone.restScaleY;
@@ -150,8 +160,11 @@ export class Skeleton {
     ctx.setLineDash([4 / screenScale, 4 / screenScale]);
 
     for (const bone of this.bones.values()) {
+      if (bone.synthetic) continue; // skip injected helper bones
+
       // Line from this bone's origin to each child's origin
       for (const child of bone.children) {
+        if (child.synthetic) continue;
         ctx.beginPath();
         ctx.moveTo(bone.worldX, bone.worldY);
         ctx.lineTo(child.worldX, child.worldY);

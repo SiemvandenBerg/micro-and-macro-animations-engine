@@ -67,7 +67,7 @@ export class AnimationPlayer {
     this.time = 0;
     this.speed = 1;
     this.enabled = true;
-    this.playing = true;
+    this.playing = false;
   }
 
   play(clip) {
@@ -109,6 +109,7 @@ export class AnimationPlayer {
         case 'rotation':  bone.rotation = value;  break;
         case 'positionX': bone.positionX = value; break;
         case 'positionY': bone.positionY = value; break;
+        case 'positionZ': bone.positionZ = value; break;
         case 'scaleX':    bone.scaleX = value;    break;
         case 'scaleY':    bone.scaleY = value;    break;
       }

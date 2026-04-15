@@ -55,6 +55,7 @@ export class ShapeRenderer {
     this.skeleton = skeleton;
     this.shapes = [];
     this.enabled = true;
+    this.strokeEnabled = true;       // toggles shape borders on/off
     this.highlightBoneIds = new Set(); // bones whose shapes should glow
   }
 
@@ -64,7 +65,7 @@ export class ShapeRenderer {
     return shape;
   }
 
-  draw(ctx) {
+  draw(ctx, skipHighlight = false) {
     if (!this.enabled) return;
 
     // Capture base scale before any bone transforms
@@ -72,7 +73,7 @@ export class ShapeRenderer {
     const screenScale = Math.hypot(t.a, t.b) || 1;
 
     // First pass: glow halos for highlighted shapes (drawn under everything)
-    if (this.highlightBoneIds.size > 0) {
+    if (!skipHighlight && this.highlightBoneIds.size > 0) {
       for (const shape of this.shapes) {
         if (!shape.visible) continue;
         if (!this._shapeInvolvesAnyBone(shape, this.highlightBoneIds)) continue;
@@ -83,43 +84,30 @@ export class ShapeRenderer {
     for (const shape of this.shapes) {
       if (!shape.visible) continue;
 
-      // bibone-quad: seamless shape spanning two bones, drawn in world space
       if (shape.type === 'bibone-quad') {
-        this._drawBiboneQuad(ctx, shape, screenScale);
-        continue;
+        this._drawBiboneQuad(ctx, shape, screenScale, this.strokeEnabled);
+      } else if (shape.type === 'tribone-quad') {
+        this._drawTriboneQuad(ctx, shape, screenScale, this.strokeEnabled);
+      } else {
+        const bone = this.skeleton.getBone(shape.binding.boneId);
+        if (bone) {
+          ctx.save();
+          ctx.translate(bone.worldX, bone.worldY);
+          ctx.rotate(bone.worldAngle);
+          ctx.scale(bone.worldScaleX, bone.worldScaleY);
+          ctx.translate(-bone.anchorX, -bone.anchorY);
+          ctx.translate(shape.binding.offset.x, shape.binding.offset.y);
+          ctx.rotate(shape.binding.rotation || 0);
+          ctx.fillStyle   = shape.fill   || '#ffffff';
+          ctx.strokeStyle = shape.stroke || '#000000';
+          ctx.lineWidth   = (shape.strokeWidth ?? 1) / screenScale;
+          ctx.lineJoin    = 'round';
+          ctx.lineCap     = 'round';
+          shape._skipStroke = !this.strokeEnabled;
+          this._drawShape(ctx, shape);
+          ctx.restore();
+        }
       }
-
-      // tribone-quad: seamless shape spanning three bones with two miter folds
-      if (shape.type === 'tribone-quad') {
-        this._drawTriboneQuad(ctx, shape, screenScale);
-        continue;
-      }
-
-      const bone = this.skeleton.getBone(shape.binding.boneId);
-      if (!bone) continue;
-
-      ctx.save();
-
-      // Move to bone world position and apply its transform
-      ctx.translate(bone.worldX, bone.worldY);
-      ctx.rotate(bone.worldAngle);
-      ctx.scale(bone.worldScaleX, bone.worldScaleY);
-      ctx.translate(-bone.anchorX, -bone.anchorY);
-
-      // Apply binding offset
-      ctx.translate(shape.binding.offset.x, shape.binding.offset.y);
-      ctx.rotate(shape.binding.rotation || 0);
-
-      // Style: per-shape fill or default white, black stroke
-      ctx.fillStyle = shape.fill || '#ffffff';
-      ctx.strokeStyle = shape.stroke || '#000000';
-      ctx.lineWidth = (shape.strokeWidth ?? 1) / screenScale;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-
-      this._drawShape(ctx, shape);
-
-      ctx.restore();
     }
   }
 
@@ -129,7 +117,7 @@ export class ShapeRenderer {
   //   radius  — corner rounding on start/end only
   //   length3 — how far along bone3 the shape extends
   // binding: { boneId (bone1), boneId2 (bone2), boneId3 (bone3) }
-  _drawTriboneQuad(ctx, shape, screenScale) {
+  _drawTriboneQuad(ctx, shape, screenScale, strokeEnabled = true) {
     const p  = shape.props;
     const b1 = this.skeleton.getBone(shape.binding.boneId);
     const b2 = this.skeleton.getBone(shape.binding.boneId2);
@@ -188,7 +176,7 @@ export class ShapeRenderer {
       [bl, ml12, ml23, tl, tr, mr23, mr12, br],
       [r,  0,    0,    r,  r,  0,    0,    r  ]);
     if (!shape.noFill) ctx.fill();
-    ctx.stroke();
+    if (strokeEnabled) ctx.stroke();
     ctx.restore();
   }
 
@@ -246,7 +234,7 @@ export class ShapeRenderer {
   //   radius  — corner rounding on the outer (non-junction) ends
   //   length2 — how far along bone2 the shape extends
   // binding: { boneId (bone1), boneId2 (bone2) }
-  _drawBiboneQuad(ctx, shape, screenScale) {
+  _drawBiboneQuad(ctx, shape, screenScale, strokeEnabled = true) {
     const p  = shape.props;
     const b1 = this.skeleton.getBone(shape.binding.boneId);
     const b2 = this.skeleton.getBone(shape.binding.boneId2);
@@ -293,7 +281,7 @@ export class ShapeRenderer {
     ctx.beginPath();
     _roundedPolygon(ctx, [bl, ml, tl, tr, mr, br], [r, 0, r, r, 0, r]);
     if (!shape.noFill) ctx.fill();
-    ctx.stroke();
+    if (strokeEnabled) ctx.stroke();
     ctx.restore();
   }
 
@@ -305,7 +293,7 @@ export class ShapeRenderer {
         ctx.beginPath();
         ctx.ellipse(0, 0, p.rx, p.ry, 0, 0, Math.PI * 2);
         if (!shape.noFill) ctx.fill();
-        ctx.stroke();
+        if (!shape._skipStroke) ctx.stroke();
         break;
       }
       case 'rect': {
@@ -316,7 +304,7 @@ export class ShapeRenderer {
         ctx.beginPath();
         ctx.roundRect(-hw, -hh, p.width, p.height, r);
         if (!shape.noFill) ctx.fill();
-        ctx.stroke();
+        if (!shape._skipStroke) ctx.stroke();
         break;
       }
       case 'path': {
@@ -349,7 +337,7 @@ export class ShapeRenderer {
           ctx.closePath();
         }
         if (!shape.noFill) ctx.fill();
-        ctx.stroke();
+        if (!shape._skipStroke) ctx.stroke();
         break;
       }
     }

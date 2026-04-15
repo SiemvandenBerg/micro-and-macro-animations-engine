@@ -85,52 +85,226 @@ export function buildSkeleton(skeleton) {
 
 // --- Shape definitions ---
 export function buildShapes(renderer) {
-  const s = (id, type, props, binding, order, fill) => {
+  // Colour palette — matches reference illustration
+  const SKIN  = '#f5ddc0';  // pale cream  — face, hands
+  const NAVY  = '#2d3a4a';  // dark navy   — sweater, sleeves
+  const PANTS = '#f0f0ea';  // off-white   — trousers
+  const DARK  = '#111827';  // near-black  — hair, shoes
+
+  // Stroke: white on dark fills, near-black on light fills
+  const strokeFor = (hex) => {
+    const c = parseInt(hex.replace('#', ''), 16);
+    const lum = 0.299 * ((c >> 16) & 0xff) + 0.587 * ((c >> 8) & 0xff) + 0.114 * (c & 0xff);
+    return lum < 128 ? '#ffffff' : '#020618';
+  };
+
+  const s = (id, type, props, binding, order, fill, noStroke = false) => {
     const shape = new Shape(id, type, props, binding);
     shape.drawOrder = order;
     shape.fill = fill;
+    if (!noStroke) shape.stroke = strokeFor(fill);
     renderer.addShape(shape);
+    return shape;
   };
 
-  // Draw order: legs back, torso, arms front, head on top
-  // Shapes are centered along their bone: offset.x = bone.length/2, width = bone.length.
-  // The renderer translates to bone.worldX/Y and rotates by worldAngle, so
-  // local +X runs along the bone toward its child joint; local +Y is perpendicular.
+  // Legs (off-white trousers)
+  s('leg_L', 'tribone-quad', { height: 14, radius: 6, length3: 14 },
+    { boneId: 'hip_L', boneId2: 'knee_L', boneId3: 'foot_L', offset: { x: 0, y: 0 }, rotation: 0 }, 1, PANTS);
 
-  // Left leg — one seamless shape from hip to foot tip
-  // tribone-quad: hip_L → knee_L → foot_L, extending 16px past foot joint
-  s('leg_L', 'tribone-quad', { height: 14, radius: 5, length3: 16 },
-    { boneId: 'hip_L', boneId2: 'knee_L', boneId3: 'foot_L', offset: { x: 0, y: 0 }, rotation: 0 }, 1, '#4a90d9');
+  // arm_R behind torso — draw before legs_R and torso
+  s('arm_R', 'tribone-quad', { height: 12, radius: 5, length3: 14 },
+    { boneId: 'shoulder_R', boneId2: 'elbow_R', boneId3: 'hand_R', offset: { x: 0, y: 0 }, rotation: 0 }, 2, NAVY);
 
-  // Right leg
-  s('leg_R', 'tribone-quad', { height: 14, radius: 5, length3: 16 },
-    { boneId: 'hip_R', boneId2: 'knee_R', boneId3: 'foot_R', offset: { x: 0, y: 0 }, rotation: 0 }, 2, '#d94a7b');
+  s('leg_R', 'tribone-quad', { height: 14, radius: 6, length3: 14 },
+    { boneId: 'hip_R', boneId2: 'knee_R', boneId3: 'foot_R', offset: { x: 0, y: 0 }, rotation: 0 }, 3, PANTS);
 
-  // Torso: single seamless shape spanning spine (40px) \u2192 chest (35px).
-  // bibone-quad draws one miter-joined polygon in world space \u2014 no visible seam at any angle.
-  s('torso', 'bibone-quad', { height: 44, radius: 8, length2: 35 },
-    { boneId: 'spine', boneId2: 'chest', offset: { x: 0, y: 0 }, rotation: 0 }, 5, '#a8d8ea');
+  // Shoes (near-black, bound to foot-tip bones)
+  s('shoe_L', 'rect', { width: 38, height: 18, radius: 5 },
+    { boneId: 'foot_tip_L', offset: { x: -6, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 4, DARK);
 
-  // Left arm — one seamless shape from shoulder to hand tip
-  // tribone-quad: shoulder_L → elbow_L → hand_L, extending 14px past hand joint
-  s('arm_L', 'tribone-quad', { height: 10, radius: 4, length3: 14 },
-    { boneId: 'shoulder_L', boneId2: 'elbow_L', boneId3: 'hand_L', offset: { x: 0, y: 0 }, rotation: 0 }, 6, '#6bc477');
+  s('shoe_R', 'rect', { width: 38, height: 18, radius: 5 },
+    { boneId: 'foot_tip_R', offset: { x: -6, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 }, 5, DARK);
 
-  // Right arm
-  s('arm_R', 'tribone-quad', { height: 10, radius: 4, length3: 14 },
-    { boneId: 'shoulder_R', boneId2: 'elbow_R', boneId3: 'hand_R', offset: { x: 0, y: 0 }, rotation: 0 }, 7, '#c4a06b');
+  // Torso (dark navy sweater) — no stroke
+  s('torso', 'bibone-quad', { height: 40, radius: 8, length2: 30 },
+    { boneId: 'spine', boneId2: 'chest', offset: { x: 0, y: 0 }, rotation: 0 }, 6, NAVY, true);
 
-  // Head: ellipse centered along the head bone (length 20), sitting above neck
+  // arm_L in front of torso
+  s('arm_L', 'tribone-quad', { height: 12, radius: 5, length3: 14 },
+    { boneId: 'shoulder_L', boneId2: 'elbow_L', boneId3: 'hand_L', offset: { x: 0, y: 0 }, rotation: 0 }, 7, NAVY);
+
+  // Hair back — centered above head center so it peeks out at the top
+  const hairBack = new Shape('hair_back', 'ellipse', { rx: 21, ry: 23 },
+    { boneId: 'head', offset: { x: 16, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 });
+  hairBack.drawOrder = 8;
+  hairBack.fill = DARK;
+  renderer.addShape(hairBack);
+
+  // Hands (skin-tone, at wrist tips)
+  const handL = new Shape('hand_L_shape', 'ellipse', { rx: 8, ry: 7 },
+    { boneId: 'hand_tip_L', offset: { x: 0, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 });
+  handL.drawOrder = 9;
+  handL.fill = SKIN;
+  handL.stroke = strokeFor(SKIN);
+  renderer.addShape(handL);
+
+  const handR = new Shape('hand_R_shape', 'ellipse', { rx: 8, ry: 7 },
+    { boneId: 'hand_tip_R', offset: { x: 0, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 });
+  handR.drawOrder = 2;
+  handR.fill = SKIN;
+  handR.stroke = strokeFor(SKIN);
+  renderer.addShape(handR);
+
+  // Head (skin-tone, drawn over hair back)
   const headShape = new Shape('head_shape', 'ellipse', { rx: 18, ry: 20 },
     { boneId: 'head', offset: { x: 10, y: 0 }, pivot: { x: 0, y: 0 }, rotation: 0 });
   headShape.drawOrder = 10;
-  headShape.fill = '#ffcc88';
+  headShape.fill = SKIN;
+  headShape.stroke = strokeFor(SKIN);
   renderer.addShape(headShape);
+
 }
 
 // --- Deform bindings (path deformation demo) ---
 export function buildDeformBindings(deformer) {
   // No bindings currently — torso outline was removed
+}
+
+// --- Catalyst Man pose ---
+// Rotates the standard skeleton to the walking stride shown in the Catalyst Man PNG:
+// left leg back, right leg forward, arms counter-swinging.
+// Call AFTER buildSkeleton(). Does NOT call captureRestPose — that happens after shapes.
+export function applyCatalystManPose(skeleton) {
+  const b = (id) => skeleton.getBone(id);
+
+  // Spine: slight forward lean
+  b('spine').rotation    = deg(-92);
+
+  // Left leg — back swing
+  b('hip_L').rotation    = deg(120);
+  b('knee_L').rotation   = deg(-20);
+  b('foot_L').rotation   = deg(-100);
+
+  // Right leg — forward swing
+  b('hip_R').rotation    = deg(60);
+  b('knee_R').rotation   = deg(5);
+  b('foot_R').rotation   = deg(-85);
+
+  // Left arm — forward swing (opposite left leg)
+  b('shoulder_L').rotation = deg(170);
+  b('elbow_L').rotation    = deg(-15);
+
+  // Right arm — back swing (opposite right leg)
+  b('shoulder_R').rotation = deg(-210);
+  b('elbow_R').rotation    = deg(5);
+}
+
+// --- Catalyst Man skeleton ---
+// Bone positions derived from the SVG skeleton overlay (Skeleton.svg, viewBox 0 0 2000 2700).
+// All positions are in SVG-pixel world units (Y-down). The engine's _sizeCanvas sets
+// scale = min(canvasW/2000, canvasH/2700) and offsets rootX/rootY so that SVG (0,0)
+// maps to the top-left corner of the contained PNG background.
+// The root bone's positionX/Y = the SVG pixel position of the hip circle (618, 784).
+// Every child bone's positionX/Y = 0 (starts at parent's anchor), so local rotation
+// and anchorX encode the direction and length of each limb segment.
+export function buildCatalystManSkeleton(skeleton) {
+  // All bones use rotation=0 at rest. Each bone's positionX/Y is the direct
+  // world-space offset from the parent's anchor so that bone.worldX/worldY
+  // (= where the pink dot appears) lands on the corresponding SVG circle.
+  //
+  // SVG viewBox 0 0 2000 2700 — exact circle positions from Skeleton.svg:
+  //   root/hip   (618, 784)    chest  (780, 653)    head   (780, 445)
+  //   knee_L     (641, 1173)   foot_L (721, 1863)   toe_L  (578, 2448)
+  //   knee_R     (897, 1292)   foot_R (1270, 1797)
+  // Arms estimated from the illustration (no SVG circles for them).
+
+  skeleton.addBone('root',          null);
+  skeleton.addBone('spine',         'root');
+  skeleton.addBone('chest',         'spine');
+  skeleton.addBone('neck',          'chest');
+  skeleton.addBone('head',          'neck');
+
+  skeleton.addBone('shoulder_L',    'chest');
+  skeleton.addBone('elbow_L',       'shoulder_L');
+  skeleton.addBone('hand_L',        'elbow_L');
+
+  skeleton.addBone('shoulder_R',    'chest');
+  skeleton.addBone('elbow_R',       'shoulder_R');
+  skeleton.addBone('hand_R',        'elbow_R');
+
+  skeleton.addBone('hip_L',         'root');
+  skeleton.addBone('knee_L',        'hip_L');
+  skeleton.addBone('shin_L',        'knee_L');
+  skeleton.addBone('foot_L',        'shin_L');
+  skeleton.addBone('ankle_L',       'foot_L');
+
+  skeleton.addBone('hip_R',         'root');
+  skeleton.addBone('knee_R',        'hip_R');
+  skeleton.addBone('shin_R',        'knee_R');
+  skeleton.addBone('foot_R',        'shin_R');
+  skeleton.addBone('ankle_R',       'foot_R');
+
+  skeleton.addBone('hand_tip_L',    'hand_L');
+  skeleton.addBone('hand_tip_R',    'hand_R');
+  // foot_tip_L/R replaced by ankle_L/R above
+
+  const b = (id) => skeleton.getBone(id);
+  // Helper: set local position offset so the bone's dot lands at (tx, ty)
+  // given its parent anchor is at (px, py). All rests have rotation=0 so
+  // positionX/Y are world-aligned deltas.
+  const at = (id, px, py, tx, ty) => {
+    b(id).positionX = tx - px;
+    b(id).positionY = ty - py;
+  };
+
+  // --- ROOT ---  dot at SVG hip (618, 784)
+  b('root').positionX = 618;
+  b('root').positionY = 784;
+
+  // --- TORSO / HEAD ---   parent anchor after root = (618, 784)
+  at('spine',       618, 784,  780, 653);  // dot at chest junction ✓
+  at('chest',       780, 653,  780, 653);  // zero-offset junction (stacked, that's OK)
+  at('neck',        780, 653,  780, 653);  // idem
+  at('head',        780, 653,  780, 445);  // dot at head circle ✓
+
+  // --- ARM positions estimated from illustration anatomy ---
+  // shoulder_L = character's left = FORWARD arm (screen-right), shoulder at x>chest
+  // shoulder_R = character's right = BACK arm (screen-left, behind body)
+
+  // Back arm (character right, behind body)
+  at('shoulder_R',  780, 653,  730, 705);   // slightly left+down from chest
+  at('elbow_R',     730, 705,  620, 930);   // back and down
+  at('hand_R',      620, 930,  600, 1150);  // trailing hand
+  b('hand_tip_R').positionX = -20;
+  b('hand_tip_R').positionY =  80;
+
+  // Forward arm (character left, in front of body)
+  at('shoulder_L',  780, 653,  870, 690);   // slightly right+down from chest
+  at('elbow_L',     870, 690,  1050, 960);  // extends forward+down
+  at('hand_L',      1050, 960, 1150, 1220); // forward hand at hip level
+  b('hand_tip_L').positionX =  60;
+  b('hand_tip_L').positionY =  80;
+
+  // --- LEFT (forward) LEG ---
+  // hip_L  = hip joint pivot, zero-offset from root
+  // knee_L = visual knee joint
+  // shin_L = mid-shin (halfway between knee and ankle)
+  // foot_L = ankle joint
+  // ankle_L = toe/shoe tip
+  at('hip_L',   618, 784,  618, 784);  // hip pivot (zero-offset from root)
+  at('knee_L',  618, 784,  641, 1173); // dot at actual knee ✓
+  at('shin_L',  641, 1173, 681, 1518); // dot at mid-shin (halfway)
+  at('foot_L',  681, 1518, 721, 1863); // dot at ankle ✓
+  at('ankle_L', 721, 1863, 578, 2448); // dot at toe/shoe tip
+
+  // --- RIGHT (back) LEG ---
+  at('hip_R',   618, 784,  618, 784);  // hip pivot (zero-offset from root)
+  at('knee_R',  618, 784,  897, 1292); // dot at right knee ✓
+  at('shin_R',  897, 1292, 1084, 1545); // dot at right mid-shin
+  at('foot_R',  1084, 1545, 1270, 1797); // dot at right ankle ✓
+  at('ankle_R', 1270, 1797, 1370, 1910); // dot at right toe/shoe tip
+
+  skeleton.captureRestPose();
 }
 
 // --- Walk animation clip ---

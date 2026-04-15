@@ -21,3 +21,7 @@ out/
 node_modules/
 venv/
 .venv/
+
+# Large animation source files (exceed GitHub's 100 MB limit)
+animations/walking/Skeleton.json
+animations/walking/catalyst man.json
